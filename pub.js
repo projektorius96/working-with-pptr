@@ -4,6 +4,8 @@ const {spawn, exec} = require('node:child_process')
 // CONSTANTS
 const SAVE_TO_FILE_PATHSPEC = "./console_log.txt";
 
+console.log("pub --process.pid", process.pid);
+
 // DEV_NOTES:
 // spawnSync cannot be IPCed, otherwise error yield - "Error [ERR_IPC_SYNC_FORK] : IPC cannot be used with synchronous forks";
 // use spawnAsync i.e. spawn instead :
@@ -14,35 +16,35 @@ const ch1 = spawn('node', ['./index.js'], {
 }).on('message', (m)=>{
     if (m) {
         /* console.log(`echo "${m}"`); */
-        exec(`echo "${m}" >> ${SAVE_TO_FILE_PATHSPEC}`, (error, stdout, stderr) => {
+        exec(`echo "${m}" >> ${SAVE_TO_FILE_PATHSPEC}`/* , (error, stdout, stderr) => {
             if (error) {
             console.error(`exec error: ${error}`);
             return;
             }
             console.log(`stdout: ${stdout}` + m);
             console.error(`stderr: ${stderr}`);
-        });
+        } */);
     }
 });
 
 ch1.on('spawn', ()=>{
     // explicit check if proceess not equal child
-    ch1.send('READY_ACCEPT_PUPPETEER')
+    ch1.send({pubPID: process.pid, pubFile: __filename})
     if (ch1.pid !== process.pid) console.log("child process spawned");
     if (ch1.channel != undefined) {
         console.log("IPC was established")
     }
 })
 
-ch1.stdin.on("data", (data)=>{
-    console.log(`child_process.stdin:\n ${data}`);
-})
-ch1.stdout.on("data", (data)=>{
-    console.log(`child_process.stdout:\n ${data}`);
-})
-ch1.stderr.on("data", (data)=>{
-    console.log(`child_process.stderr:\n ${data}`);
-})
+// ch1.stdin.on("data", (data)=>{
+//     console.log(`child_process.stdin:\n ${data}`);
+// })
+// ch1.stdout.on("data", (data)=>{
+//     console.log(`child_process.stdout:\n ${data}`);
+// })
+// ch1.stderr.on("data", (data)=>{
+//     console.log(`child_process.stderr:\n ${data}`);
+// })
 
 /* --- */
 ch1.on('close', (signalTxt) => {
