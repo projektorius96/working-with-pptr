@@ -44,7 +44,7 @@ process.on('message', ({pubPID, pubFile})=>{
             })
             
             page.on("close", async ()=>{
-                console.log("on:close"); // # child_process.stdout: on:close
+                console.log("on:close"); // # (in pub.js) - child_process.stdout: on:close
             })
 
             /* await browser.close(); */ // # waits until user explicitly closes user-agent (browser's) window
