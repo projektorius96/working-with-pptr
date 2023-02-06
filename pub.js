@@ -1,21 +1,27 @@
 const process = require('node:process')
 const {spawn, exec} = require('node:child_process')
 
-console.log("pub --process.pid", process.pid);
+const SAVE_TO_FILE_PATHSPEC = "./console_log.txt";
 
 // DEV_NOTES:
 // # spawnSync cannot be IPCed, otherwise error yield - "Error [ERR_IPC_SYNC_FORK] : IPC cannot be used with synchronous forks";
 // # use spawnAsync i.e. spawn instead :
-const child_process = spawn(process.argv0 /* === "node" */ , ['./sub.mjs'], {
+const child_process = spawn(process.argv0 /* === "node" */ , ['./sub.js'], {
     /* shell: true, *//* <= was a [CULPRIT] for : Error: EBADF: bad file descriptor, uv_pipe_open */
     cwd: process.cwd(),
     stdio: ['pipe', 'pipe', 'pipe', 'ipc'] /* : subprocess.stdin, .out, .err, ipc for messaging */
 }).on('message', (m)=>{
-    if (m === "FEEDBACK_FROM_SUB") {
-        console.log(`pub/sub communication pair was succcessful => child_process (sub.js) message was: ${m}`)
+    if (m) {
+        exec(`echo "${m}" >> ${SAVE_TO_FILE_PATHSPEC}`/* , (error, stdout, stderr) => {
+            if (error) {
+                console.error(`exec error: ${error}`);
+                return;
+            }
+                console.log(`stdout: ${stdout}` + m);
+                console.error(`stderr: ${stderr}`);
+        } */)
     }
 });
-
 child_process.on('spawn', ()=>{
     // do explicit check if parent_process (aka process) is not equal child_process
     if (child_process.pid !== process.pid) {
@@ -24,7 +30,13 @@ child_process.on('spawn', ()=>{
     if (child_process.channel != undefined) {
         console.log("IPC was established...")
         // DEV_NOTE: leave the line below commented out if you want to handle child_process.kill('SIGKILL') lines below
-        /*toThe*/child_process.send({parent_process_pid: process.pid, pubFile: __filename, child_process_pid: child_process.pid, codename: "CODE_NAME_XYZ"})
+        
+        /*toThe*/child_process.send({
+                    parent_process_pid: process.pid, /* <= or use process.ppid inside child file */
+                    child_process_pid: child_process.pid, 
+                    dump_file_pathspec: SAVE_TO_FILE_PATHSPEC, 
+                    arbitrary_codename: "CODENAME_UNICORN"
+                })
     }
 })
 
